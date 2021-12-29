@@ -1,6 +1,6 @@
 **sattrec**
 
-<_In Progress_<
+<_In Progress_>
 
 Sattrec is  Python-base project to provide azimuth and elevation pointing for a fixed optical sensor to track on-orbit satellites in lower Earth orbit. The package primarily utilizes the Skyfield (https://pypi.org/project/skyfield/) Python library and the SGP4 propagator.  
 
