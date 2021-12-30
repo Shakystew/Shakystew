@@ -1,14 +1,15 @@
-"""
-@
-
-"""
+"""-------------
+@Shakystew
+-------------"""
 
 from skyfield.api import load, EarthSatellite, wgs84
+
 
 class sattract(object):
     """
     Description: TBD
     """
+
     def __init__(self, filename, lat, lon, alt):
         """
         :param filename: {str} /full/path/to/TLE file
@@ -44,16 +45,33 @@ class sattract(object):
                 print("Error:\tFailed to load TLE file (%s).")
         return
 
-    def inview(self, satellite, start, end, above=30.):
+    def inview(self, satellite, start, end, above=30.0):
         """
         Description: Calculates time windows when satellite is in view
         :param satellite: {object} EarthSatellite <object> to query
         :param start:   {datetime} start of time to query <inview>
         :param end:     {datetime} end of time to query <inview>
         :param above:   {float} degree above horizon to track satellite
-        :return: {list} of tuples of start, stops of tracking windows
+        :return: {list} rise, peak, set of datetimes
         """
+        times, events = satellite.find_events(
+            self.bluffton, start, end, altitude_degrees=above
+        )
+        rise = [x.utc_datetime() for x in times[0::3]]
+        peak = [x.utc_datetime() for x in times[1::3]]
+        set = [x.utc_datetime() for x in times[2::3]]
+        return rise, peak, set
+
+    def main(self):
+        self.tle()
+        return self.inview(
+            self.satellites[30000], self.ts.utc(2021, 12, 1), self.ts.utc(2021, 12, 31)
+        )
 
 
 if __name__ == "__main__":
-    pass
+    tle_file = "./tle_sample.tle"
+    lat = 38.804410
+    lon = -77.051930
+    alt = 0
+    rise, peak, set = sattract(filename=tle_file, lat=lat, lon=lon, alt=alt).main()
