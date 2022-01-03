@@ -3,7 +3,8 @@
 -------------"""
 
 from skyfield.api import load, EarthSatellite, wgs84
-
+import datetime as dt
+import numpy as np
 
 class sattract(object):
     """
@@ -43,7 +44,7 @@ class sattract(object):
             else:
                 print("Error:\tTLE file (%s) is not 3LE format." % self.filename)
                 print("Error:\tFailed to load TLE file (%s).")
-        return
+        return self.satellites
 
     def inview(self, satellite, start, end, above=30.0):
         """
@@ -54,24 +55,51 @@ class sattract(object):
         :param above:   {float} degree above horizon to track satellite
         :return: {list} rise, peak, set of datetimes
         """
+        if isinstance(start, dt.datetime):
+            start = self.ts.from_datetime(start)
+
+        if isinstance(end, dt.datetime):
+            end = self.ts.from_datetime(end)
+
+        if start > end:
+            print('Start time is after end time for <inview> function.')
+
         times, events = satellite.find_events(
             self.bluffton, start, end, altitude_degrees=above
         )
         rise = [x.utc_datetime() for x in times[0::3]]
         peak = [x.utc_datetime() for x in times[1::3]]
         set = [x.utc_datetime() for x in times[2::3]]
+
         return rise, peak, set
 
-    def main(self):
+    def azel(self, satellite, qtime):
+        """
+        Description: Returns azimuth and elevation of Earth Satellite <object>
+                        from current position <self.bluffton>
+        :param satellite: {object} Skyfield EarthSatellite <object>
+        :param qtime:     {object} skyfield.timelib.Time <object> to query
+                                   position of Earth Satellite <object>
+        :return:
+        """
+        if isinstance(qtime, dt.datetime):
+            qtime = self.ts.from_datetime(qtime)
+        difference = satellite - self.bluffton
+        topocentric = difference.at(qtime)
+        el, az, distance = topocentric.altaz()
+
+        return el.degrees, az.degrees, distance.km
+
+    def main(self, scc):
         self.tle()
-        return self.inview(
-            self.satellites[30000], self.ts.utc(2021, 12, 1), self.ts.utc(2021, 12, 31)
-        )
+        sccs = [str(t.target).split()[0].split('-1')[1] for t in self.satellites]
+        scc_loc = np.where(np.array(sccs) == scc)[0]
+        return self.azel(self.satellites[scc_loc], self.ts.utc(2021, 12, 1))
 
 
 if __name__ == "__main__":
     tle_file = "./tle_sample.tle"
-    lat = 38.804410
-    lon = -77.051930
+    lat = 38.9072
+    lon = -77.0369
     alt = 0
-    rise, peak, set = sattract(filename=tle_file, lat=lat, lon=lon, alt=alt).main()
+    el, az, distance = sattract(filename=tle_file, lat=lat, lon=lon, alt=alt).main()
